@@ -1,0 +1,37 @@
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: recall-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: recall_db
+      POSTGRES_USER: recall_user
+      POSTGRES_PASSWORD: recall_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - recall_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recall_user -d recall_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: recall-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - recall_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  recall_postgres_data:
+  recall_redis_data:

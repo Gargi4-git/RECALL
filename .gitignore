@@ -6,21 +6,20 @@
 # Python
 __pycache__/
 *.py[cod]
+*.pyd
 .venv/
 venv/
 
-# Node
-node_modules/
-.next/
-out/
+# Testing and coverage
+.pytest_cache/
+.coverage
+htmlcov/
 
 # IDE
 .vscode/
 .idea/
 
-# Logs
-*.log
-
-# OS
-.DS_Store
-Thumbs.db
+# Node
+node_modules/
+.next/
+dist/

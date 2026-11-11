@@ -23,3 +23,6 @@ htmlcov/
 node_modules/
 .next/
 dist/
+
+# Uploaded development materials
+apps/api/storage/

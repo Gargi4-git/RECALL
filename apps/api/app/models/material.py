@@ -12,6 +12,10 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.document_chunk import DocumentChunk
 
 
 class Material(Base):
@@ -70,3 +74,8 @@ class Material(Base):
     subject: Mapped["Subject"] = relationship(
         back_populates="materials",
     )
+
+    chunks: Mapped[list["DocumentChunk"]] = relationship(
+    back_populates="material",
+    cascade="all, delete-orphan",
+)

@@ -9,3 +9,6 @@ celery
 redis
 python-multipart
 httpx
+PyMuPDF
+python-pptx
+python-docx

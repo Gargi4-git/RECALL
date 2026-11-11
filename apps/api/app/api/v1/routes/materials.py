@@ -17,6 +17,9 @@ from app.db.database import get_db
 from app.models.material import Material
 from app.models.subject import Subject
 from app.schemas.material import MaterialResponse
+from pathlib import Path
+
+from app.services.document_extractor import extract_document
 
 
 router = APIRouter(tags=["Materials"])
@@ -206,3 +209,83 @@ def get_subject_materials(
     )
 
     return materials
+
+
+@router.post("/materials/{material_id}/extract")
+def extract_material(
+    material_id: UUID,
+    db: Session = Depends(get_db),
+):
+    # 1. Find the material record.
+    material = db.query(Material).filter(
+        Material.id == material_id
+    ).first()
+
+    if not material:
+        raise HTTPException(
+            status_code=404,
+            detail="Material not found",
+        )
+
+    # 2. Resolve the stored file safely.
+    storage_root = settings.STORAGE_DIR.resolve()
+
+    file_path = (
+        storage_root / material.storage_path
+    ).resolve()
+
+    # Prevent paths outside the storage directory.
+    if not file_path.is_relative_to(storage_root):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid material storage path",
+        )
+
+    if not file_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Stored material file not found",
+        )
+
+    # 3. Extract document content.
+    try:
+        blocks = extract_document(file_path)
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=415,
+            detail=str(error),
+        )
+
+    except Exception:
+        raise HTTPException(
+            status_code=422,
+            detail="Unable to extract document content. The file may be corrupted or invalid.",
+        )
+
+    # 4. Identify pages/slides without extractable text.
+    empty_sources = [
+        {
+            "source_type": block["source_type"],
+            "source_number": block["source_number"],
+        }
+        for block in blocks
+        if not block["text"].strip()
+    ]
+
+    non_empty_blocks = [
+        block for block in blocks
+        if block["text"].strip()
+    ]
+
+    return {
+        "material_id": str(material.id),
+        "filename": material.original_filename,
+        "extraction_status": (
+            "completed" if non_empty_blocks else "no_text_found"
+        ),
+        "total_blocks": len(blocks),
+        "extracted_blocks": len(non_empty_blocks),
+        "empty_sources": empty_sources,
+        "content": non_empty_blocks,
+    }
